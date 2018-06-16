@@ -14,6 +14,7 @@ public class Keys {
     public static final String SUM_KEY_MONEY = "MONEY";
     public static final String SUM_KEY_APPROVAL = "APPROVAL";
     public static final String SUM_KEY_INFO = "INFO";
+    public static final String SUM_KEY_RANDOM = "KEY_RANDOM";
 
     public static final String PERSON_KEY_CONTACTS = "Person";
     public static final String PERSON_KEY_NAME = "PERSON_NAME";

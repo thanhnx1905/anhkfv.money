@@ -3,14 +3,20 @@ package anhkfv.moneysum;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -20,6 +26,7 @@ import android.widget.Toast;
 import com.example.anhth.myapplication.MainActivity;
 import com.example.anhth.myapplication.R;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -30,6 +37,7 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -37,8 +45,11 @@ import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
 
+import anhkfv.infomation.detail.InfomationDetail;
 import anhkfv.infomation.detail.Person;
 import anhkfv.person.DialogMultipleChoiceAdapter;
+import anhkfv.processdata.ControllerData;
+import anhkfv.processdata.UpdateData;
 
 
 public class PostData extends AppCompatActivity {
@@ -49,25 +60,54 @@ public class PostData extends AppCompatActivity {
     TextView tdate,tidMoney, tPerson;
     Button button;
     ImageButton imageDate, imgPerson;
+    CheckBox checkApproval;
     String date, money, idMoney, info;
+    boolean valueApproval;
     List<Person> itemList = new ArrayList<>();
+    InfomationDetail infomation ;
     Intent i;
+    boolean update, approval;
+    private final  static  String DATE_FORMAT ="yyyy-MM-dd";
+    private final  static SimpleDateFormat dateFomat = new SimpleDateFormat(DATE_FORMAT);
+    Date currentDate = new Date();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.form);
-         i = getIntent();
+        i = getIntent();
         itemList = (List<Person>) i.getSerializableExtra("persons");
+        infomation = (InfomationDetail) i.getSerializableExtra("infomation");
+        if(infomation != null){
+            update = true;
+        }else{
+            update = false;
+        }
         Toast.makeText(PostData.this, "so pt: "+itemList.size()+"", Toast.LENGTH_LONG).show();
-        button=(Button)findViewById(R.id.btn_submit);
-        tmoney=(EditText)findViewById(R.id.input_money);
-        tidMoney=(TextView) findViewById(R.id.input_id_money);
-        tPerson=(TextView) findViewById(R.id.input_person);
-        tInfo=(EditText)findViewById(R.id.input_info);
+        button = (Button)findViewById(R.id.btn_submit);
+        tmoney = (EditText)findViewById(R.id.input_money);
+        tidMoney = (TextView) findViewById(R.id.input_id_money);
+        tPerson = (TextView) findViewById(R.id.input_person);
+        tInfo = (EditText)findViewById(R.id.input_info);
         tdate = (TextView)findViewById(R.id.textDatePost);
         imageDate = (ImageButton)findViewById(R.id.imageDate);
         imgPerson = (ImageButton)findViewById(R.id.imagePerson);
-
+        checkApproval = (CheckBox)findViewById(R.id.checkApproval);
+        SharedPreferences prefs = PreferenceManager
+                .getDefaultSharedPreferences(PostData.this);
+        if( prefs.getInt("anhkfv", 0)== 1){
+            approval = true;
+        }else{
+            checkApproval.setEnabled(false);
+        }
+        if(update){
+            tmoney.setText(infomation.getMoney().toString());
+            tidMoney.setText(infomation.getIdMoney());
+            tPerson.setText(infomation.getPersonName());
+            tInfo.setText(infomation.getInfo());
+            tdate.setText(dateFomat.format(infomation.getDate()));
+            checkApproval.setChecked(infomation.getApproval().equals("1") ? true: false);
+            imageDate.setEnabled(false);
+        }
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -76,14 +116,30 @@ public class PostData extends AppCompatActivity {
                 money = tmoney.getText().toString();
                 idMoney = tidMoney.getText().toString();
                 info = tInfo.getText().toString();
-
-                new SendRequest().execute();
+                valueApproval = checkApproval.isChecked();
+                if(idMoney.equals("") || money.equals("") || info.equals("")){
+                    Toast.makeText(PostData.this, "Vui Lòng Nhập Tất cả Cột", Toast.LENGTH_LONG).show();
+                }else {
+                    if(update){
+                        InfomationDetail detailTemp = infomation;
+                        detailTemp.setMoney(Float.parseFloat(tmoney.getText().toString()));
+                        detailTemp.setIdMoney(tidMoney.getText().toString());
+                        detailTemp.setApproval(valueApproval ? "1" : "0");
+                        detailTemp.setInfo(tInfo.getText().toString());
+                        new UpdateDataCommon(PostData.this, infomation.getKeyRandom(), detailTemp).execute();
+                    }else {
+                        new SendRequest().execute();
+                    }
+                }
 
             }
 
         }   );
 
-        Date currentDate = new Date();
+
+        if(infomation != null){
+            currentDate = infomation.getDate();
+        }
         tdate.setText((1900+currentDate.getYear()) + "-" + (currentDate.getMonth()+1) + "-" +currentDate.getDate() );
         imageDate.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -95,11 +151,8 @@ public class PostData extends AppCompatActivity {
                     public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
 
                         tdate.setText(year + "-" + (monthOfYear + 1) + "-" +dayOfMonth );
-//                        mYear = year;
-//                        mMonth = monthOfYear;
-//                        mDay = dayOfMonth;
                     }
-                }, 2018, 01, 01);
+                }, 1900+currentDate.getYear(), currentDate.getMonth(), currentDate.getDate());
                 datePickerDialog.show();
             }
         });
@@ -108,28 +161,29 @@ public class PostData extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                // public void show() {
-//                    if (itemList.isEmpty()) {
-//                        itemList.add(new Person("A", "1_2"));
-//                        itemList.add(new Person("B", "1_3"));
-//                        itemList.add(new Person("C", "2_3"));
-//                    }
-
                     final DialogMultipleChoiceAdapter adapter =
                             new DialogMultipleChoiceAdapter(PostData.this, itemList);
 
-                    new AlertDialog.Builder(PostData.this).setTitle("Select Image")
+                    new AlertDialog.Builder(PostData.this).setTitle("Chọn người")
                             .setAdapter(adapter, null)
                             .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int i) {
-//                                    Toast.makeText(PostData.this,
-//                                            "getCheckedItem = " + adapter.getCheckedItem(),
-//                                            Toast.LENGTH_SHORT).show();
                                     String textPer="", textName = "";
-
                                     for(Person p : adapter.getCheckedItem()){
-                                        textPer += p.getPersonId()+"_";
-                                        textName += p.getPersonName()+", ";
+                                        String personId = "" ;
+                                        String personName = "";
+                                        if(p.isCheckAll()){
+                                            personId = p.getPersonId();
+                                            personName = p.getPersonName();
+                                        }
+
+                                        if(p.isCheckOne()){
+                                            personId = p.getPersonId()+"*";
+                                            personName = p.getPersonName()+"*";
+                                        }
+                                        textPer += personId+"_";
+                                        textName += personName+", ";
                                     }
                                     tidMoney.setText(textPer);
                                     tPerson.setText(textName);
@@ -148,6 +202,38 @@ public class PostData extends AppCompatActivity {
         });
     }
 
+    public PostData() {
+        super();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    @Override
+    protected void onDestroy() {
+        finish();
+        super.onDestroy();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        switch(keyCode){
+            case KeyEvent.KEYCODE_BACK:
+                Intent intent = new Intent(PostData.this, MainActivity.class);
+                this.startActivity(intent);
+                finish();
+                return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
     public class SendRequest extends AsyncTask<String, Void, String> {
 
         ProgressDialog dialog;
@@ -163,23 +249,16 @@ public class PostData extends AppCompatActivity {
             try{
 
                 URL url = new URL("https://script.google.com/macros/s/AKfycbzsKHT5UqDYA5bAes-czUizuHMPSej3Ni7liYln3O7uptptFlFv/exec");
-                // https://script.google.com/macros/s/AKfycbyuAu6jWNYMiWt9X5yp63-hypxQPlg5JS8NimN6GEGmdKZcIFh0/exec
                 JSONObject postDataParams = new JSONObject();
-
-                //int i;
-                //for(i=1;i<=70;i++)
-
-
-                //    String usn = Integer.toString(i);
-
                 String id= "17KDSX9sX6EZitMEH7zF2X4EdjS4LZsLaLtxw_9EDxK8";
 
                 postDataParams.put("date", date);
                 postDataParams.put("money",money);
                 postDataParams.put("idMoney",idMoney);
-                postDataParams.put("approval","0");
+                postDataParams.put("approval", approval ? (valueApproval ? 1 : 0) : 0);
                 postDataParams.put("info", info);
                 postDataParams.put("id", id);
+                postDataParams.put("keyRandom", System.currentTimeMillis());
 
 
                 Log.e("params",postDataParams.toString());
@@ -234,7 +313,10 @@ public class PostData extends AppCompatActivity {
                     Toast.LENGTH_LONG).show();
             Intent intent = new Intent(getApplicationContext(), MainActivity.class);
             startActivity(intent);
+            finish();
         }
+
+
     }
 
     public String getPostDataString(JSONObject params) throws Exception {
@@ -261,4 +343,62 @@ public class PostData extends AppCompatActivity {
         }
         return result.toString();
     }
-}
+
+    class UpdateDataCommon extends AsyncTask<Void, Void, Void> {
+        ProgressDialog dialog;
+        int jIndex;
+        int x;
+
+        String result = null;
+        Context mContext;
+        String id;
+        InfomationDetail detail;
+
+        public UpdateDataCommon(Context mContext, String id, InfomationDetail detail) {
+            this.mContext = mContext;
+            this.id = id;
+            this.detail = detail;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            dialog = new ProgressDialog(mContext);
+            dialog.setMessage("Đang load dữ liệu ...!");
+            dialog.show();
+
+        }
+
+        @Nullable
+        @Override
+        protected Void doInBackground(Void... params) {
+            JSONObject jsonObject = ControllerData.updateData(id, detail);
+            Log.i(ControllerData.TAG, "Json obj ");
+
+            try {
+                if (jsonObject != null) {
+
+                    result = jsonObject.getString("result");
+
+                }
+            } catch (JSONException je) {
+                Log.i(ControllerData.TAG, "" + je.getLocalizedMessage());
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            if (dialog != null) {
+                dialog.dismiss();
+            }
+            Toast.makeText(mContext, result,
+                    Toast.LENGTH_LONG).show();
+            Intent intent = new Intent(mContext, MainActivity.class);
+            mContext.startActivity(intent);
+            finish();
+        }
+    }
+    }

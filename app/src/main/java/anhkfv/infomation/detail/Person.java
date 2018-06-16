@@ -2,21 +2,27 @@ package anhkfv.infomation.detail;
 
 import java.io.Serializable;
 
-public class Person implements Serializable{
+public class
+Person implements Serializable{
     private String personName;
     private String personId;
-    private boolean check;
+    private String group;
+    private boolean checkAll;
+    private boolean checkOne;
 
-    public Person(String personName, String personId) {
+    public Person(String personName, String personId, String group) {
         this.personName = personName;
         this.personId = personId;
-        this.check = false;
+        this.checkAll = false;
+        this.checkOne = false;
+        this.group = group;
     }
 
-    public Person(String personName, String personId, boolean check) {
+    public Person(String personName, String personId, boolean checkAll, boolean checkOne) {
         this.personName = personName;
         this.personId = personId;
-        this.check = check;
+        this.checkAll = checkAll;
+        this.checkOne = checkOne;
     }
 
     public Person() {
@@ -39,11 +45,27 @@ public class Person implements Serializable{
         this.personId = personId;
     }
 
-    public boolean isCheck() {
-        return check;
+    public boolean isCheckAll() {
+        return checkAll;
     }
 
-    public void setCheck(boolean check) {
-        this.check = check;
+    public void setCheckAll(boolean checkALl) {
+        this.checkAll = checkALl;
+    }
+
+    public boolean isCheckOne() {
+        return checkOne;
+    }
+
+    public void setCheckOne(boolean checkOne) {
+        this.checkOne = checkOne;
+    }
+
+    public String getGroup() {
+        return group;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
     }
 }

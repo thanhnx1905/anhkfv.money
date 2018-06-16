@@ -13,30 +13,11 @@
         />
     <TextView
         android:id="@+id/text"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerVertical="true"
         android:layout_marginLeft="8dp"
         android:layout_toRightOf="@id/image"
         tools:text="AA"
         />
-
-    <CheckBox
-        android:id="@+id/checkBoxOne"
-        android:layout_width="58dp"
-        android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
-        android:layout_marginLeft="-70dp"
-        android:layout_toLeftOf="@+id/checkBoxAll"
-
-        android:layout_toRightOf="@+id/text"
-        android:checked="false" />
-
-    <CheckBox
-        android:id="@+id/checkBoxAll"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_centerVertical="true"
-        android:checked="false" />
 </RelativeLayout>

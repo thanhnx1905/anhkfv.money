@@ -29,6 +29,8 @@ import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +43,7 @@ import anhkfv.internet.InternetConnection;
 import anhkfv.money.database.JSONDetailParser;
 import anhkfv.money.database.Keys;
 import anhkfv.moneysum.PostData;
+import anhkfv.person.SortInfomation;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -53,6 +56,7 @@ public class MainActivity extends AppCompatActivity
     private Map<String, Person> personMap = new HashMap<>();
     private RecyclerView recyclerView;
     private InfomationDetailAdapter mAdapter;
+    ProgressDialog dialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +66,7 @@ public class MainActivity extends AppCompatActivity
         setSupportActionBar(toolbar);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab3 = (FloatingActionButton) findViewById(R.id.fab3);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -70,6 +75,17 @@ public class MainActivity extends AppCompatActivity
 
                 Intent intent = new Intent(getApplicationContext(), PostData.class);
                 intent.putExtra("persons", (Serializable)personList);
+                startActivity(intent);
+                finish();
+            }
+        });
+
+        fab3.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(getApplicationContext(), CalcMoney.class);
+                intent.putExtra("persons", (Serializable)personList);
+                intent.putExtra("infomation", (Serializable)movieList);
                 startActivity(intent);
             }
         });
@@ -84,8 +100,11 @@ public class MainActivity extends AppCompatActivity
         navigationView.setNavigationItemSelectedListener(this);
 
         recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-
-        mAdapter = new InfomationDetailAdapter(movieList);
+        dialog = new ProgressDialog(MainActivity.this);
+        // dialog.setTitle("Hey Wait Please..."+x);
+        dialog.setMessage("Chờ load dữ liệu ....");
+        dialog.show();
+        mAdapter = new InfomationDetailAdapter(movieList, personList);
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(MainActivity.this);
         recyclerView.setLayoutManager(mLayoutManager);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
@@ -95,6 +114,7 @@ public class MainActivity extends AppCompatActivity
     private void loadDataServer() {
         if (InternetConnection.checkConnection(getApplicationContext())) {
             movieList.clear();
+            personList.clear();
             new GetDataTask().execute();
         } else {
             Toast.makeText(MainActivity.this, "Internet Connection Not Available", Toast.LENGTH_LONG).show();
@@ -138,8 +158,10 @@ public class MainActivity extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_camera) {
-            Toast.makeText(this, "ssss", Toast.LENGTH_LONG).show();
+        if (id == R.id.login) {
+            Intent it = new Intent(MainActivity.this, LoginActivity.class);
+            startActivity(it);
+            finish();
         } else if (id == R.id.nav_gallery) {
 
         } else if (id == R.id.nav_slideshow) {
@@ -164,12 +186,20 @@ public class MainActivity extends AppCompatActivity
         loadDataServer();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (dialog != null) {
+            dialog.dismiss();
+            dialog = null;
+        }
+    }
+
     /**
      * Creating Get Data Task for Getting Data From Web
      */
     class GetDataTask extends AsyncTask<Void, Void, Void> {
 
-        ProgressDialog dialog;
         int jIndex;
         int jIndPer;
         int x;
@@ -177,21 +207,6 @@ public class MainActivity extends AppCompatActivity
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            /**
-             * Progress Dialog for User Interaction
-             */
-//            movieList = new ArrayList<>();
-//            x=movieList.size();
-//
-//            if(x==0)
-//                jIndex=0;
-//            else
-//                jIndex=x;
-
-            dialog = new ProgressDialog(MainActivity.this);
-           // dialog.setTitle("Hey Wait Please..."+x);
-            dialog.setMessage("Chờ load dữ liệu ....");
-            dialog.show();
         }
 
         @Nullable
@@ -223,7 +238,8 @@ public class MainActivity extends AppCompatActivity
                             JSONObject innerObject = arrayPerson.getJSONObject(jIndPer);
                             String personName = innerObject.getString(Keys.PERSON_KEY_NAME);
                             String personId = innerObject.getString(Keys.PERSON_KEY_ID);
-                            persTemp = new Person(personName, personId);
+                            String group = innerObject.getString(Keys.PERSON_KEY_GROUP);
+                            persTemp = new Person(personName, personId, group);
                             personList.add(persTemp);
                             personMap.put(personId, persTemp);
                         }
@@ -239,17 +255,18 @@ public class MainActivity extends AppCompatActivity
                                 String money = innerObject.getString(Keys.SUM_KEY_MONEY);
                                 String approval = innerObject.getString(Keys.SUM_KEY_APPROVAL);
                                 String info = innerObject.getString(Keys.SUM_KEY_INFO);
+                                String keyRandom = innerObject.getString(Keys.SUM_KEY_RANDOM);
                                 try {
                                     //dateFomat.setTimeZone();
                                     Date dateT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").parse(date.replaceAll("Z$", "+0000"));
-                                    movieList.add(InfomationDetail.createInfoDetail(dateT, namePerson(idMoney), idMoney, Float.parseFloat(money), approval, info));
+                                    movieList.add(InfomationDetail.createInfoDetail(dateT, namePerson(idMoney), idMoney, Float.parseFloat(money), approval, info, keyRandom));
                                 } catch (ParseException e) {
                                     e.printStackTrace();
                                 }
 
                             }
                         }
-
+                        Collections.sort(movieList, new SortInfomation());
                     }
                 } else {
 
@@ -264,8 +281,8 @@ public class MainActivity extends AppCompatActivity
             String [] id = idMoney.split("_");
             String name = "";
             for(int i = 0; i< id.length; i++){
-                Person per = personMap.get(id[i]);
-                name += (per == null ? "" : per.getPersonName()) +", ";
+                Person per = personMap.get(id[i].contains("*") ? id[i].split("\\*")[0] : id[i]);
+                name += per == null ? "" : id[i].contains("*") ? per.getPersonName()+"*, " : per.getPersonName() +", ";
             }
           return name;
         }
@@ -273,7 +290,9 @@ public class MainActivity extends AppCompatActivity
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
-            dialog.dismiss();
+            if (dialog != null) {
+                dialog.dismiss();
+            }
             /**
              * Checking if List size if more than zero then
              * Update ListView

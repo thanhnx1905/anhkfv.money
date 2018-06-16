@@ -43,7 +43,7 @@ public class DialogMultipleChoiceAdapter extends BaseAdapter {
     public List<Person> getCheckedItem() {
         List<Person> checkedItemList = new ArrayList<>();
         for (Person item : mItemList) {
-            if (item.isCheck()) {
+            if (item.isCheckAll() || item.isCheckOne()) {
                 checkedItemList.add(item);
             }
         }
@@ -64,33 +64,56 @@ public class DialogMultipleChoiceAdapter extends BaseAdapter {
         holder.tvTitle.setText(item.getPersonName());
         holder.ivImage.setImageResource(R.drawable.ic_menu_camera);
 
-        holder.checkbox.setOnClickListener(new View.OnClickListener() {
+        holder.checkBoxAll.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                item.setCheck(!item.isCheck());
-                updateItemState(holder, item.isCheck());
+                item.setCheckAll(!item.isCheckAll());
+                if(item.isCheckAll()) {
+                    item.setCheckOne(false);
+                    updateItemStateOne(holder, false);
+                }
+                updateItemState(holder, item.isCheckAll());
             }
         });
-        updateItemState(holder, item.isCheck());
+        updateItemState(holder, item.isCheckAll());
+        holder.checkBoxOne.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                item.setCheckOne(!item.isCheckOne());
+                updateItemStateOne(holder, item.isCheckOne());
+
+                if(item.isCheckOne()) {
+                    item.setCheckAll(false);
+                    updateItemState(holder, false);
+                }
+            }
+        });
+        updateItemStateOne(holder, item.isCheckOne());
         return convertView;
     }
 
     private void updateItemState(ViewHolder holder, boolean checked) {
         holder.root.setAlpha(checked ? 1 : 0.8f);
-        holder.checkbox.setChecked(checked);
+        holder.checkBoxAll.setChecked(checked);
+    }
+
+    private void updateItemStateOne(ViewHolder holder, boolean checked) {
+        holder.root.setAlpha(checked ? 1 : 0.8f);
+        holder.checkBoxOne.setChecked(checked);
     }
 
     private static class ViewHolder {
         View root;
         TextView tvTitle;
         ImageView ivImage;
-        CheckBox checkbox;
+        CheckBox checkBoxAll, checkBoxOne;
 
         ViewHolder(View view) {
             root = view;
             tvTitle = view.findViewById(R.id.text);
             ivImage = view.findViewById(R.id.image);
-            checkbox = view.findViewById(R.id.checkbox);
+            checkBoxAll = view.findViewById(R.id.checkBoxAll);
+            checkBoxOne = view.findViewById(R.id.checkBoxOne);
         }
     }
 }

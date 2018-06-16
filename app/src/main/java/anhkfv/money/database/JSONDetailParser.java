@@ -17,7 +17,7 @@ import lombok.NonNull;
 
 public class JSONDetailParser {
 
-    private static final String MAIN_URL = "";
+    private static final String MAIN_URL = "https://script.google.com/macros/s/AKfycbxyCBPJHKy6oIIGvs9t9DrrTNFCVh6UWmre8B2fy2TNSZzwxF4/exec?id=17KDSX9sX6EZitMEH7zF2X4EdjS4LZsLaLtxw_9EDxK8&sheet=Sheet_Sum&person=Person";
 
     public static final String TAG = "TAG";
 
